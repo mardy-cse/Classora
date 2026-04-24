@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'home_screen.dart';
 import 'onboarding_screen.dart';
 
 // ─── Brand colours ───────────────────────────────────────────────────────────
@@ -116,9 +118,13 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   void _navigateToHome() {
+    final user = FirebaseAuth.instance.currentUser;
+    final destination = user != null
+        ? const HomeScreen()
+        : const OnboardingScreen();
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, animation, __) => const OnboardingScreen(),
+        pageBuilder: (_, animation, __) => destination,
         transitionsBuilder: (_, animation, __, child) => FadeTransition(
           opacity: animation,
           child: child,
