@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -124,7 +125,25 @@ class _LoginScreenState extends State<LoginScreen>
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+      final user = userCredential.user!;
+
+      // Check if teacher document exists; create if not
+      final teacherRef = FirebaseFirestore.instance
+          .collection('teachers')
+          .doc(user.uid);
+      final teacherSnap = await teacherRef.get();
+      if (!teacherSnap.exists) {
+        await teacherRef.set({
+          'uid': user.uid,
+          'name': user.displayName,
+          'email': user.email,
+          'role': 'teacher',
+          'created_at': FieldValue.serverTimestamp(),
+        });
+      }
+
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
