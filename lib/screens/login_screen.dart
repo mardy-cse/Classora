@@ -28,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _passwordCtrl    = TextEditingController();
   bool  _obscurePassword = true;
   bool  _loading         = false;
+  bool  _googleLoading   = false;
   String? _errorMessage;
 
   late final AnimationController _anim;
@@ -83,6 +84,22 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() => _loading = false);
 
     // Demo: any email + password ≥ 6 chars → success
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, a, __) => const HomeScreen(),
+        transitionsBuilder: (_, a, __, child) =>
+            FadeTransition(opacity: a, child: child),
+        transitionDuration: const Duration(milliseconds: 500),
+      ),
+    );
+  }
+
+  // ── Google login (stub) ───────────────────────────────────────────────────
+  Future<void> _googleLogin() async {
+    setState(() => _googleLoading = true);
+    await Future.delayed(const Duration(milliseconds: 1000));
+    if (!mounted) return;
+    setState(() => _googleLoading = false);
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (_, a, __) => const HomeScreen(),
@@ -303,6 +320,14 @@ class _LoginScreenState extends State<LoginScreen>
                                   const Expanded(
                                       child: Divider(color: _kBorder)),
                                 ],
+                              ),
+
+                              const SizedBox(height: 24),
+
+                              // Google login button
+                              _GoogleButton(
+                                loading: _googleLoading,
+                                onTap: _googleLogin,
                               ),
 
                               const SizedBox(height: 30),
@@ -532,6 +557,116 @@ class _LoginButton extends StatelessWidget {
                 ),
         ),
       );
+}
+
+// ─── Google button ────────────────────────────────────────────────────────────
+class _GoogleButton extends StatelessWidget {
+  final bool loading;
+  final VoidCallback onTap;
+  const _GoogleButton({required this.loading, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: double.infinity,
+        height: 58,
+        child: OutlinedButton(
+          onPressed: loading ? null : onTap,
+          style: OutlinedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: _kTextDark,
+            disabledForegroundColor: _kTextMuted,
+            side: const BorderSide(color: _kBorder, width: 1.4),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 0,
+          ),
+          child: loading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    color: _kPrimary,
+                    strokeWidth: 2.5,
+                  ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _GoogleLogo(),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Continue with Google',
+                      style: TextStyle(
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.2,
+                        color: _kTextDark,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+      );
+}
+
+// ─── Google "G" logo painter ──────────────────────────────────────────────────
+class _GoogleLogo extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+        size: const Size(22, 22),
+        painter: _GoogleLogoPainter(),
+      );
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final r  = size.width / 2;
+
+    // Draw the four colored arcs of the Google G
+    const sweepAngle = 3.14159 / 2; // 90 degrees each
+
+    final colors = [
+      const Color(0xFF4285F4), // blue  (top-right)
+      const Color(0xFF34A853), // green (bottom-right)
+      const Color(0xFFFBBC05), // yellow (bottom-left)
+      const Color(0xFFEA4335), // red  (top-left)
+    ];
+
+    for (int i = 0; i < 4; i++) {
+      final paint = Paint()
+        ..color = colors[i]
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * 0.22
+        ..strokeCap = StrokeCap.butt;
+
+      canvas.drawArc(
+        Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.72),
+        -sweepAngle / 2 + i * sweepAngle,
+        sweepAngle,
+        false,
+        paint,
+      );
+    }
+
+    // White horizontal bar for the "G" cut-out
+    final barPaint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = size.width * 0.22
+      ..strokeCap = StrokeCap.square;
+
+    canvas.drawLine(
+      Offset(cx, cy),
+      Offset(cx + r * 0.72, cy),
+      barPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // ─── Background blob ──────────────────────────────────────────────────────────

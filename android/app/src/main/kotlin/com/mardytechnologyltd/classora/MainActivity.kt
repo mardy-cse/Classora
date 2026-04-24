@@ -1,4 +1,4 @@
-package com.example.classora
+package com.mardytechnologyltd.classora
 
 import io.flutter.embedding.android.FlutterActivity
 
