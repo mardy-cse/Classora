@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'forgot_password_screen.dart';
 import 'home_screen.dart';
 import 'signup_screen.dart';
 
@@ -241,7 +242,27 @@ class _LoginScreenState extends State<LoginScreen>
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: GestureDetector(
-                                  onTap: () {},
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      PageRouteBuilder(
+                                        pageBuilder: (_, a, __) =>
+                                            const ForgotPasswordScreen(),
+                                        transitionsBuilder: (_, a, __, child) =>
+                                            SlideTransition(
+                                              position: Tween<Offset>(
+                                                begin: const Offset(0, 0.08),
+                                                end: Offset.zero,
+                                              ).animate(CurvedAnimation(
+                                                  parent: a,
+                                                  curve: Curves.easeOutCubic)),
+                                              child: FadeTransition(
+                                                  opacity: a, child: child),
+                                            ),
+                                        transitionDuration:
+                                            const Duration(milliseconds: 380),
+                                      ),
+                                    );
+                                  },
                                   child: const Text(
                                     'Forgot Password?',
                                     style: TextStyle(
