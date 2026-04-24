@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'add_student_screen.dart';
+import 'create_batch_screen.dart';
 import 'login_screen.dart';
 
 // ─── Brand palette ─────────────────────────────────────────────────────────
@@ -601,7 +602,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   icon: Icons.group_add_rounded,
                   label: 'Create Batch',
                   color: _kPurple,
-                  onTap: () {},
+                  onTap: _openCreateBatch,
                 ),
               ),
               const SizedBox(width: 10),
@@ -716,6 +717,23 @@ class _DashboardScreenState extends State<DashboardScreen>
     await Navigator.of(context).push(
       PageRouteBuilder(
         pageBuilder: (_, a, __) => const AddStudentScreen(),
+        transitionsBuilder: (_, a, __, child) => SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 1),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
+          child: child,
+        ),
+        transitionDuration: const Duration(milliseconds: 420),
+      ),
+    );
+  }
+
+  // ── Open Create Batch screen ──────────────────────────────────────────────
+  Future<void> _openCreateBatch() async {
+    await Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (_, a, __) => const CreateBatchScreen(),
         transitionsBuilder: (_, a, __, child) => SlideTransition(
           position: Tween<Offset>(
             begin: const Offset(0, 1),
