@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'add_student_screen.dart';
+import 'batches_tab.dart';
 import 'create_batch_screen.dart';
 import 'login_screen.dart';
+import 'students_tab.dart';
 
 // ─── Brand palette ─────────────────────────────────────────────────────────
 const _kPrimary     = Color(0xFF2563EB);
@@ -146,9 +148,19 @@ class _DashboardScreenState extends State<DashboardScreen>
       ),
       child: Scaffold(
         backgroundColor: _kBg,
-        floatingActionButton: _buildFab(),
+        floatingActionButton: _navIndex == 0 ? _buildFab() : null,
         bottomNavigationBar: _buildBottomNav(),
-        body: _loading ? _buildSkeleton() : _buildBody(),
+        body: _loading
+            ? _buildSkeleton()
+            : IndexedStack(
+                index: _navIndex,
+                children: [
+                  _buildBody(),
+                  const StudentsTab(),
+                  const BatchesTab(),
+                  _buildProfileTab(),
+                ],
+              ),
       ),
     );
   }
@@ -746,6 +758,131 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  // ── Profile tab ────────────────────────────────────────────────────────────
+  Widget _buildProfileTab() {
+    final user    = FirebaseAuth.instance.currentUser;
+    final name    = user?.displayName ?? 'Teacher';
+    final email   = user?.email ?? '';
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'T';
+    final safeTop = MediaQuery.of(context).padding.top;
+
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        children: [
+          // Header gradient
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(24, safeTop + 24, 24, 32),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 80, height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.2),
+                    border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+                  ),
+                  child: Center(
+                    child: Text(
+                      initial,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  email,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.78),
+                    fontSize: 13.5,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Teacher',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Menu items
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                _ProfileMenuItem(
+                  icon: Icons.person_outline_rounded,
+                  label: 'Edit Profile',
+                  onTap: () {},
+                ),
+                _ProfileMenuItem(
+                  icon: Icons.lock_outline_rounded,
+                  label: 'Change Password',
+                  onTap: () {},
+                ),
+                _ProfileMenuItem(
+                  icon: Icons.notifications_outlined,
+                  label: 'Notifications',
+                  onTap: () {},
+                ),
+                _ProfileMenuItem(
+                  icon: Icons.help_outline_rounded,
+                  label: 'Help & Support',
+                  onTap: () {},
+                ),
+                const SizedBox(height: 8),
+                _ProfileMenuItem(
+                  icon: Icons.logout_rounded,
+                  label: 'Logout',
+                  color: const Color(0xFFEF4444),
+                  onTap: _logout,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 100),
+        ],
+      ),
+    );
+  }
+
   // ── FAB ────────────────────────────────────────────────────────────────────
   Widget _buildFab() {
     return FloatingActionButton(
@@ -1110,6 +1247,60 @@ class _SkeletonBoxState extends State<_SkeletonBox>
             ),
             borderRadius: BorderRadius.circular(widget.radius),
           ),
+        ),
+      );
+}
+
+// ─── Profile menu item ────────────────────────────────────────────────────────
+class _ProfileMenuItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color color;
+  const _ProfileMenuItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color = const Color(0xFF0F172A),
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ListTile(
+          onTap: onTap,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          leading: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          title: Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 14.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          trailing: Icon(Icons.chevron_right_rounded,
+              color: const Color(0xFF64748B).withOpacity(0.5)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
         ),
       );
 }
