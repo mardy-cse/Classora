@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'home_screen.dart';
+import 'login_screen.dart';
 
 // ─── Brand palette ────────────────────────────────────────────────────────────
 const _kPrimary   = Color(0xFF2563EB);
@@ -96,7 +96,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   void _goHome() {
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, a, __) => const HomeScreen(),
+        pageBuilder: (_, a, __) => const LoginScreen(),
         transitionsBuilder: (_, a, __, child) =>
             FadeTransition(opacity: a, child: child),
         transitionDuration: const Duration(milliseconds: 500),
