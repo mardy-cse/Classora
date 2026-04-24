@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import 'home_screen.dart';
+import 'onboarding_screen.dart';
 
 // ─── Brand colours ───────────────────────────────────────────────────────────
 const _kDeepNavy   = Color(0xFF050E1F);
@@ -118,7 +118,7 @@ class _SplashScreenState extends State<SplashScreen>
   void _navigateToHome() {
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, animation, __) => const HomeScreen(),
+        pageBuilder: (_, animation, __) => const OnboardingScreen(),
         transitionsBuilder: (_, animation, __, child) => FadeTransition(
           opacity: animation,
           child: child,
