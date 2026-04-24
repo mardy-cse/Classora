@@ -115,13 +115,16 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() { _googleLoading = true; _errorMessage = null; });
     try {
       final googleSignIn = GoogleSignIn();
-      // Sign out first to force fresh token and avoid stale ID token error
-      await googleSignIn.signOut();
+      // Fully disconnect to revoke cached tokens and force fresh authentication
+      try { await googleSignIn.disconnect(); } catch (_) {}
+      await FirebaseAuth.instance.signOut();
+
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
         setState(() => _googleLoading = false);
         return;
       }
+      // Force fresh token by clearing cached auth
       final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
