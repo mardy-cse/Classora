@@ -295,20 +295,6 @@ class _NextBtn extends StatelessWidget {
                     letterSpacing: 0.4,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(9),
-                  ),
-                  child: const Icon(
-                    Icons.arrow_forward_rounded,
-                    color: Colors.white,
-                    size: 17,
-                  ),
-                ),
               ],
             ),
           ),
@@ -513,20 +499,6 @@ class _WelcomePage extends StatelessWidget {
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.4,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        width: 30,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                        child: const Icon(
-                          Icons.arrow_forward_rounded,
-                          color: Colors.white,
-                          size: 17,
                         ),
                       ),
                     ],
