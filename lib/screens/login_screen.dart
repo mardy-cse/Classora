@@ -1,5 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import 'forgot_password_screen.dart';
 import 'home_screen.dart';
@@ -77,37 +79,70 @@ class _LoginScreenState extends State<LoginScreen>
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
-    // Simulate network call
-    await Future.delayed(const Duration(milliseconds: 1200));
-
-    if (!mounted) return;
-    setState(() => _loading = false);
-
-    // Demo: any email + password ≥ 6 chars → success
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (_, a, __) => const HomeScreen(),
-        transitionsBuilder: (_, a, __, child) =>
-            FadeTransition(opacity: a, child: child),
-        transitionDuration: const Duration(milliseconds: 500),
-      ),
-    );
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailCtrl.text.trim(),
+        password: _passwordCtrl.text,
+      );
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (_, a, __) => const HomeScreen(),
+          transitionsBuilder: (_, a, __, child) =>
+              FadeTransition(opacity: a, child: child),
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = switch (e.code) {
+          'user-not-found'     => 'No account found with this email.',
+          'wrong-password'     => 'Incorrect password.',
+          'invalid-email'      => 'Invalid email address.',
+          'user-disabled'      => 'This account has been disabled.',
+          'invalid-credential' => 'Invalid email or password.',
+          _                    => 'Login failed. Please try again.',
+        };
+      });
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
-  // ── Google login (stub) ───────────────────────────────────────────────────
+  // ── Google login ───────────────────────────────────────────────────
   Future<void> _googleLogin() async {
-    setState(() => _googleLoading = true);
-    await Future.delayed(const Duration(milliseconds: 1000));
-    if (!mounted) return;
-    setState(() => _googleLoading = false);
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (_, a, __) => const HomeScreen(),
-        transitionsBuilder: (_, a, __, child) =>
-            FadeTransition(opacity: a, child: child),
-        transitionDuration: const Duration(milliseconds: 500),
-      ),
-    );
+    setState(() { _googleLoading = true; _errorMessage = null; });
+    try {
+      final googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        setState(() => _googleLoading = false);
+        return;
+      }
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+      await FirebaseAuth.instance.signInWithCredential(credential);
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (_, a, __) => const HomeScreen(),
+          transitionsBuilder: (_, a, __, child) =>
+              FadeTransition(opacity: a, child: child),
+          transitionDuration: const Duration(milliseconds: 500),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      setState(() => _errorMessage = e.message ?? 'Google sign-in failed.');
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _errorMessage = 'Google sign-in failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => _googleLoading = false);
+    }
   }
 
   // ── Go to Sign Up ──────────────────────────────────────────────────────────
