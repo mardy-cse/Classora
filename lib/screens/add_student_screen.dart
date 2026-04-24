@@ -125,16 +125,19 @@ class _AddStudentScreenState extends State<AddStudentScreen>
         'teacher_id':  uid,
         'status':      'active',
         'created_at':  FieldValue.serverTimestamp(),
-      });
+      }).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () => throw Exception('Request timed out. Check your internet connection.'),
+      );
 
       if (!mounted) return;
       Navigator.of(context).pop(true); // return true = success
     } on FirebaseException catch (e) {
       if (!mounted) return;
-      setState(() => _errorMessage = e.message ?? 'Failed to save student.');
-    } catch (_) {
+      setState(() => _errorMessage = '[${e.code}] ${e.message ?? 'Firebase error'}');
+    } catch (e) {
       if (!mounted) return;
-      setState(() => _errorMessage = 'Something went wrong. Please try again.');
+      setState(() => _errorMessage = e.toString());
     } finally {
       if (mounted) setState(() => _saving = false);
     }
