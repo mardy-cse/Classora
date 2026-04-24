@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'add_student_screen.dart';
 import 'login_screen.dart';
 
 // ─── Brand palette ─────────────────────────────────────────────────────────
@@ -590,7 +591,7 @@ class _DashboardScreenState extends State<DashboardScreen>
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
             ),
-            onTap: () {},
+            onTap: _openAddStudent,
           ),
           const SizedBox(height: 10),
           Row(
@@ -710,10 +711,27 @@ class _DashboardScreenState extends State<DashboardScreen>
     );
   }
 
+  // ── Open Add Student screen ────────────────────────────────────────────────
+  Future<void> _openAddStudent() async {
+    await Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (_, a, __) => const AddStudentScreen(),
+        transitionsBuilder: (_, a, __, child) => SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 1),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
+          child: child,
+        ),
+        transitionDuration: const Duration(milliseconds: 420),
+      ),
+    );
+  }
+
   // ── FAB ────────────────────────────────────────────────────────────────────
   Widget _buildFab() {
     return FloatingActionButton(
-      onPressed: () {},
+      onPressed: _openAddStudent,
       backgroundColor: _kPrimary,
       foregroundColor: Colors.white,
       elevation: 6,
