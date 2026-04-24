@@ -114,7 +114,10 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _googleLogin() async {
     setState(() { _googleLoading = true; _errorMessage = null; });
     try {
-      final googleUser = await GoogleSignIn().signIn();
+      final googleSignIn = GoogleSignIn();
+      // Sign out first to force fresh token and avoid stale ID token error
+      await googleSignIn.signOut();
+      final googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
         setState(() => _googleLoading = false);
         return;
