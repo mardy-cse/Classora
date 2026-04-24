@@ -12,7 +12,20 @@
           "package_name": "com.mardytechnologyltd.classora"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "846130756827-hc6sporhhh5tqf9p51pefuibuohm4sqc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mardytechnologyltd.classora",
+            "certificate_hash": "c0e0249befacc25bff99c8758493d3a0965867c1"
+          }
+        },
+        {
+          "client_id": "846130756827-j240gq45g17h51j1aihbkn5njv82do1e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBJT9PakbpKgrlWxvlgRKpEgjxFmpiOcGY"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "846130756827-j240gq45g17h51j1aihbkn5njv82do1e.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
