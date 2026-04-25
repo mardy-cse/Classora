@@ -163,6 +163,129 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
 
     return Scaffold(
       backgroundColor: _kBg,
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.fromLTRB(
+            16, 12, 16, MediaQuery.of(context).padding.bottom + 12),
+        decoration: BoxDecoration(
+          color: _kCard,
+          border: Border(top: BorderSide(color: _kBorder, width: 1)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Take Attendance
+            Expanded(
+              flex: 3,
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).push(
+                  PageRouteBuilder(
+                    pageBuilder: (_, a, __) => AttendanceScreen(
+                      batchId: widget.docId,
+                      batchName: _data['name'] as String? ?? '-',
+                    ),
+                    transitionsBuilder: (_, a, __, child) => SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(1, 0),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(
+                          parent: a, curve: Curves.easeOutCubic)),
+                      child: child,
+                    ),
+                    transitionDuration: const Duration(milliseconds: 380),
+                  ),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [_kPrimary, _kPurple],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _kPrimary.withOpacity(0.28),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.fact_check_rounded,
+                          color: Colors.white, size: 18),
+                      SizedBox(width: 7),
+                      Text(
+                        'Take Attendance',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            // View History
+            Expanded(
+              flex: 2,
+              child: GestureDetector(
+                onTap: () => Navigator.of(context).push(
+                  PageRouteBuilder(
+                    pageBuilder: (_, a, __) => AttendanceHistoryScreen(
+                      batchId: widget.docId,
+                      batchName: _data['name'] as String? ?? '-',
+                    ),
+                    transitionsBuilder: (_, a, __, child) => SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(1, 0),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(
+                          parent: a, curve: Curves.easeOutCubic)),
+                      child: child,
+                    ),
+                    transitionDuration: const Duration(milliseconds: 380),
+                  ),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  decoration: BoxDecoration(
+                    color: _kBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _kBorder, width: 1.5),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.history_rounded, color: _kPrimary, size: 18),
+                      const SizedBox(width: 7),
+                      const Text(
+                        'History',
+                        style: TextStyle(
+                          color: _kPrimary,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
       body: FadeTransition(
         opacity: _fade,
         child: SlideTransition(
@@ -175,6 +298,14 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                 expandedHeight: 180,
                 pinned: true,
                 backgroundColor: _kPrimary,
+                title: Text(
+                  name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 leading: IconButton(
                   icon: const Icon(Icons.arrow_back_ios_new_rounded,
                       color: Colors.white, size: 20),
@@ -325,117 +456,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                       teacherId: FirebaseAuth.instance.currentUser!.uid,
                     ),
 
-                    const SizedBox(height: 16),
-
-                    // ── Take Attendance button ──────────────────────────
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).push(
-                        PageRouteBuilder(
-                          pageBuilder: (_, a, __) => AttendanceScreen(
-                            batchId: widget.docId,
-                            batchName: _data['name'] as String? ?? '-',
-                          ),
-                          transitionsBuilder: (_, a, __, child) =>
-                              SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(1, 0),
-                              end: Offset.zero,
-                            ).animate(CurvedAnimation(
-                                parent: a, curve: Curves.easeOutCubic)),
-                            child: child,
-                          ),
-                          transitionDuration:
-                              const Duration(milliseconds: 380),
-                        ),
-                      ),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [_kPrimary, _kPurple],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: _kPrimary.withOpacity(0.3),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.fact_check_rounded,
-                                color: Colors.white, size: 20),
-                            SizedBox(width: 10),
-                            Text(
-                              'Take Attendance',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    // ── View History button ─────────────────────────────
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).push(
-                        PageRouteBuilder(
-                          pageBuilder: (_, a, __) => AttendanceHistoryScreen(
-                            batchId: widget.docId,
-                            batchName: _data['name'] as String? ?? '-',
-                          ),
-                          transitionsBuilder: (_, a, __, child) =>
-                              SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(1, 0),
-                              end: Offset.zero,
-                            ).animate(CurvedAnimation(
-                                parent: a, curve: Curves.easeOutCubic)),
-                            child: child,
-                          ),
-                          transitionDuration:
-                              const Duration(milliseconds: 380),
-                        ),
-                      ),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: _kCard,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: _kBorder, width: 1.5),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.history_rounded,
-                                color: _kPrimary, size: 20),
-                            const SizedBox(width: 10),
-                            const Text(
-                              'View Attendance History',
-                              style: TextStyle(
-                                color: _kPrimary,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    const SizedBox(height: 8),
                   ]),
                 ),
               ),

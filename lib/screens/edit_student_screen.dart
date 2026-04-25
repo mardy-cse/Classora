@@ -98,10 +98,12 @@ class _EditStudentScreenState extends State<EditStudentScreen>
     ).animate(CurvedAnimation(parent: _anim, curve: Curves.easeOutCubic));
 
     _loadBatches();
+    _phoneCtrl.addListener(_stripLeadingZero);
   }
 
   @override
   void dispose() {
+    _phoneCtrl.removeListener(_stripLeadingZero);
     _nameCtrl.dispose();
     _fatherNameCtrl.dispose();
     _phoneCtrl.dispose();
@@ -109,6 +111,19 @@ class _EditStudentScreenState extends State<EditStudentScreen>
     _addressCtrl.dispose();
     _anim.dispose();
     super.dispose();
+  }
+
+  // ── Strip leading 0 when +880 is selected ──────────────────────────────────
+  void _stripLeadingZero() {
+    if (_selectedCountry.dialCode != '+880') return;
+    final text = _phoneCtrl.text;
+    if (text.startsWith('0')) {
+      final stripped = text.substring(1);
+      _phoneCtrl.value = TextEditingValue(
+        text: stripped,
+        selection: TextSelection.collapsed(offset: stripped.length),
+      );
+    }
   }
 
   // ── Load batches ──────────────────────────────────────────────────────────
@@ -141,8 +156,8 @@ class _EditStudentScreenState extends State<EditStudentScreen>
     if (v == null || v.trim().isEmpty) return 'Phone number is required';
     final digits = v.trim().replaceAll(RegExp(r'\D'), '');
     if (_selectedCountry.dialCode == '+880') {
-      if (digits.length != 11) return 'Must be exactly 11 digits (e.g. 01XXXXXXXXX)';
-      if (!digits.startsWith('01')) return 'Must start with 01';
+      if (digits.length != 10) return 'Must be exactly 10 digits (e.g. 1XXXXXXXXX)';
+      if (!digits.startsWith('1')) return 'Must start with 1';
     } else if (_selectedCountry.expectedLocalDigits > 0) {
       if (digits.length != _selectedCountry.expectedLocalDigits) {
         return 'Must be exactly ${_selectedCountry.expectedLocalDigits} digits';
@@ -168,7 +183,7 @@ class _EditStudentScreenState extends State<EditStudentScreen>
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
-        hintText: _selectedCountry.dialCode == '+880' ? '01XXXXXXXXX' : 'Phone number',
+        hintText: _selectedCountry.dialCode == '+880' ? '1XXXXXXXXX' : 'Phone number',
         hintStyle: TextStyle(color: _kTextMuted.withOpacity(0.6), fontSize: 14),
         prefixIcon: GestureDetector(
           onTap: () async {

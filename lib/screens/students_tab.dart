@@ -283,11 +283,6 @@ class _StudentCard extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    username,
-                    style: const TextStyle(color: _kPrimary, fontSize: 12.5, fontWeight: FontWeight.w500),
-                  ),
                   if (phone.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Row(
@@ -374,8 +369,8 @@ class _StudentCard extends StatelessWidget {
   Future<void> _call(String phone) async {
     final digits = phone.replaceAll(RegExp(r'[^\d+]'), '');
     if (digits.isEmpty) return;
-    final uri = Uri.parse('tel:$digits');
-    if (await canLaunchUrl(uri)) await launchUrl(uri);
+    final uri = Uri(scheme: 'tel', path: digits);
+    await launchUrl(uri);
   }
 }
 
