@@ -79,6 +79,14 @@ class _DashboardScreenState extends State<DashboardScreen>
     return name.split(' ').first;
   }
 
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    if (hour < 21) return 'Good Evening';
+    return 'Good Night';
+  }
+
   String get _todayLabel {
     const weekdays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     const months   = ['January','February','March','April','May','June',
@@ -300,8 +308,8 @@ class _DashboardScreenState extends State<DashboardScreen>
       backgroundColor: _kBg,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
-      floating: true,
-      snap: true,
+      pinned: true,
+      floating: false,
       automaticallyImplyLeading: false,
       titleSpacing: 20,
       title: Row(
@@ -322,7 +330,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ),
           const SizedBox(width: 10),
           const Text(
-            'Dashboard',
+            'Classora',
             style: TextStyle(
               color: _kTextDark,
               fontSize: 20,
@@ -540,7 +548,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Welcome back, $_displayName! 👋',
+                '$_greeting, $_displayName! 👋',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 20,

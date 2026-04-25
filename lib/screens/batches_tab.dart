@@ -16,8 +16,30 @@ const _kBorder    = Color(0xFFE2E8F0);
 const _kSuccess   = Color(0xFF10B981);
 const _kWarning   = Color(0xFFF59E0B);
 
-class BatchesTab extends StatelessWidget {
+class BatchesTab extends StatefulWidget {
   const BatchesTab({super.key});
+
+  @override
+  State<BatchesTab> createState() => _BatchesTabState();
+}
+
+class _BatchesTabState extends State<BatchesTab> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(() {
+      setState(() => _query = _searchCtrl.text.trim().toLowerCase());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +85,45 @@ class BatchesTab extends StatelessWidget {
           ),
         ),
 
+        // ── Search ───────────────────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+          child: TextField(
+            controller: _searchCtrl,
+            style: const TextStyle(
+              color: _kTextDark,
+              fontSize: 14.5,
+              fontWeight: FontWeight.w500,
+            ),
+            decoration: InputDecoration(
+              hintText: 'Search by name, subject or code…',
+              hintStyle: TextStyle(color: _kTextMuted.withOpacity(0.65), fontSize: 14),
+              prefixIcon: const Icon(Icons.search_rounded, color: _kTextMuted, size: 20),
+              suffixIcon: _query.isNotEmpty
+                  ? GestureDetector(
+                      onTap: () => _searchCtrl.clear(),
+                      child: const Icon(Icons.close_rounded, color: _kTextMuted, size: 18),
+                    )
+                  : null,
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _kBorder),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _kBorder),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _kPrimary, width: 1.5),
+              ),
+            ),
+          ),
+        ),
+
         // ── List ─────────────────────────────────────────────────────────────
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
@@ -86,15 +147,36 @@ class BatchesTab extends StatelessWidget {
                 if (aTime == null || bTime == null) return 0;
                 return bTime.compareTo(aTime);
               });
+
+              final filtered = _query.isEmpty
+                  ? docs
+                  : docs.where((d) {
+                      final data = d.data() as Map<String, dynamic>;
+                      final name    = (data['name']        as String? ?? '').toLowerCase();
+                      final subject = (data['subject']     as String? ?? '').toLowerCase();
+                      final code    = (data['batch_code']  as String? ?? '').toLowerCase();
+                      return name.contains(_query) ||
+                             subject.contains(_query) ||
+                             code.contains(_query);
+                    }).toList();
+
               if (docs.isEmpty) return const _EmptyState();
+              if (filtered.isEmpty) {
+                return Center(
+                  child: Text(
+                    'No batches match "$_query"',
+                    style: const TextStyle(color: _kTextMuted, fontSize: 14),
+                  ),
+                );
+              }
 
               return ListView.builder(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-                itemCount: docs.length,
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                itemCount: filtered.length,
                 itemBuilder: (_, i) {
-                  final data = docs[i].data() as Map<String, dynamic>;
-                  return _BatchCard(docId: docs[i].id, data: data);
+                  final data = filtered[i].data() as Map<String, dynamic>;
+                  return _BatchCard(docId: filtered[i].id, data: data);
                 },
               );
             },
