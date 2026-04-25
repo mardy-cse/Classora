@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'batch_detail_screen.dart';
 import 'create_batch_screen.dart';
+import 'login_screen.dart';
 
 // ─── Brand palette ─────────────────────────────────────────────────────────
 const _kPrimary   = Color(0xFF2563EB);
@@ -43,7 +44,10 @@ class _BatchesTabState extends State<BatchesTab> {
 
   @override
   Widget build(BuildContext context) {
-    final uid     = FirebaseAuth.instance.currentUser!.uid;
+    final uid      = FirebaseAuth.instance.currentUser!.uid;
+    final user      = FirebaseAuth.instance.currentUser;
+    final firstName = ((user?.displayName ?? user?.email ?? 'T').split(' ').first);
+    final initial   = firstName.isNotEmpty ? firstName[0].toUpperCase() : 'T';
     final safeTop = MediaQuery.of(context).padding.top;
 
     return Column(
@@ -54,6 +58,20 @@ class _BatchesTabState extends State<BatchesTab> {
           padding: EdgeInsets.fromLTRB(20, safeTop + 12, 20, 14),
           child: Row(
             children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [_kPrimary, _kPurple],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: const Icon(Icons.school_rounded, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 10),
               const Expanded(
                 child: Text(
                   'Batches',
@@ -65,19 +83,37 @@ class _BatchesTabState extends State<BatchesTab> {
                   ),
                 ),
               ),
-              _AddButton(
-                onTap: () => Navigator.of(context).push(
-                  PageRouteBuilder(
-                    pageBuilder: (_, a, __) => const CreateBatchScreen(),
-                    transitionsBuilder: (_, a, __, child) => SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 1),
-                        end: Offset.zero,
-                      ).animate(
-                          CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
-                      child: child,
+              const SizedBox(width: 10),
+              // Profile avatar
+              GestureDetector(
+                onTap: _showProfileSheet,
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [_kPrimary, _kPurple],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    transitionDuration: const Duration(milliseconds: 420),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _kPrimary.withOpacity(0.35),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      initial,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -183,6 +219,132 @@ class _BatchesTabState extends State<BatchesTab> {
           ),
         ),
       ],
+    );
+  }
+
+  // ── Logout ────────────────────────────────────────────────────────────────
+  Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Logout', style: TextStyle(fontWeight: FontWeight.w700)),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kPrimary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await FirebaseAuth.instance.signOut();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, a, __) => const LoginScreen(),
+        transitionsBuilder: (_, a, __, child) =>
+            FadeTransition(opacity: a, child: child),
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
+    );
+  }
+
+  // ── Profile sheet ─────────────────────────────────────────────────────────
+  void _showProfileSheet() {
+    final user = FirebaseAuth.instance.currentUser;
+    final firstName = ((user?.displayName ?? user?.email ?? 'T').split(' ').first);
+    final initial = firstName.isNotEmpty ? firstName[0].toUpperCase() : 'T';
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: _kBorder,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: 64, height: 64,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [_kPrimary, _kPurple],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  initial,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 26,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              user?.displayName ?? 'Teacher',
+              style: const TextStyle(
+                color: _kTextDark,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              user?.email ?? '',
+              style: const TextStyle(color: _kTextMuted, fontSize: 13),
+            ),
+            const SizedBox(height: 24),
+            const Divider(color: _kBorder),
+            const SizedBox(height: 8),
+            ListTile(
+              onTap: () => Navigator.pop(context),
+              leading: const Icon(Icons.settings_outlined, color: _kTextDark, size: 22),
+              title: const Text('Settings',
+                  style: TextStyle(color: _kTextDark, fontSize: 15, fontWeight: FontWeight.w600)),
+              trailing: Icon(Icons.chevron_right_rounded, color: _kTextMuted.withOpacity(0.5)),
+              contentPadding: EdgeInsets.zero,
+            ),
+            ListTile(
+              onTap: () {
+                Navigator.pop(context);
+                _logout();
+              },
+              leading: const Icon(Icons.logout_rounded, color: Colors.red, size: 22),
+              title: const Text('Logout',
+                  style: TextStyle(color: Colors.red, fontSize: 15, fontWeight: FontWeight.w600)),
+              trailing: Icon(Icons.chevron_right_rounded, color: _kTextMuted.withOpacity(0.5)),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -365,45 +527,6 @@ class _InfoChip extends StatelessWidget {
             style: const TextStyle(color: _kTextMuted, fontSize: 12.5),
           ),
         ],
-      );
-}
-
-// ─── Add button ───────────────────────────────────────────────────────────────
-class _AddButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _AddButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [_kPrimary, _kPurple]),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: _kPrimary.withOpacity(0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add_rounded, color: Colors.white, size: 18),
-              SizedBox(width: 5),
-              Text(
-                'New',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700),
-              ),
-            ],
-          ),
-        ),
       );
 }
 

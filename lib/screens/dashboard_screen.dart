@@ -215,7 +215,11 @@ class _DashboardScreenState extends State<DashboardScreen>
       ),
       child: Scaffold(
         backgroundColor: _kBg,
-        floatingActionButton: _navIndex == 0 ? _buildFab() : null,
+        floatingActionButton: _navIndex == 1
+            ? _buildFab(_openAddStudent)
+            : _navIndex == 2
+                ? _buildFab(_openCreateBatch)
+                : null,
         bottomNavigationBar: _buildBottomNav(),
         body: _loading
             ? _buildSkeleton()
@@ -333,7 +337,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             'Classora',
             style: TextStyle(
               color: _kTextDark,
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.3,
             ),
@@ -1099,14 +1103,29 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   // ── FAB ────────────────────────────────────────────────────────────────────
-  Widget _buildFab() {
-    return FloatingActionButton(
-      onPressed: _openAddStudent,
-      backgroundColor: _kPrimary,
-      foregroundColor: Colors.white,
-      elevation: 6,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: const Icon(Icons.add_rounded, size: 28),
+  Widget _buildFab(VoidCallback onPressed) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        width: 58,
+        height: 58,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [_kPrimary, _kPurple],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: _kPrimary.withOpacity(0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+      ),
     );
   }
 
