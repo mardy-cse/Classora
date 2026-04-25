@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -54,8 +55,14 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen>
     with TickerProviderStateMixin {
-  int _navIndex = 0;
-  bool _loading = true;
+  int  _navIndex = 0;
+  bool _loading  = true;
+
+  // Real Firestore data
+  int _totalStudents  = 0;
+  int _totalBatches   = 0;
+  int _activeStudents = 0;
+  List<Map<String, dynamic>> _recentStudents = [];
 
   late final AnimationController _fadeCtrl;
   late final Animation<double>   _fadeAnim;
@@ -66,6 +73,14 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (user == null) return 'Teacher';
     final name = user.displayName ?? user.email ?? 'Teacher';
     return name.split(' ').first;
+  }
+
+  String get _todayLabel {
+    const weekdays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const months   = ['January','February','March','April','May','June',
+                      'July','August','September','October','November','December'];
+    final now = DateTime.now();
+    return '${weekdays[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
   }
 
   @override
@@ -83,13 +98,52 @@ class _DashboardScreenState extends State<DashboardScreen>
       duration: const Duration(milliseconds: 900),
     );
 
-    // Simulate loading
-    Future.delayed(const Duration(milliseconds: 800), () {
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    try {
+      final results = await Future.wait([
+        FirebaseFirestore.instance
+            .collection('students')
+            .where('teacher_id', isEqualTo: uid)
+            .get(),
+        FirebaseFirestore.instance
+            .collection('batches')
+            .where('teacher_id', isEqualTo: uid)
+            .get(),
+      ]).timeout(const Duration(seconds: 15));
+
+      final studentDocs = results[0].docs;
+      final batchDocs   = results[1].docs;
+
+      final activeCount = studentDocs
+          .where((d) => (d.data())['status'] == 'active')
+          .length;
+
+      // Sort client-side (no composite index needed)
+      final sorted = List.of(studentDocs)
+        ..sort((a, b) {
+          final aT = a.data()['created_at'] as Timestamp?;
+          final bT = b.data()['created_at'] as Timestamp?;
+          if (aT == null || bT == null) return 0;
+          return bT.compareTo(aT);
+        });
+
       if (!mounted) return;
-      setState(() => _loading = false);
-      _fadeCtrl.forward();
-      _statsCtrl.forward();
-    });
+      setState(() {
+        _totalStudents  = studentDocs.length;
+        _totalBatches   = batchDocs.length;
+        _activeStudents = activeCount;
+        _recentStudents = sorted.take(5).map((d) => d.data()).toList();
+        _loading        = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+    _fadeCtrl.forward();
+    _statsCtrl.forward();
   }
 
   @override
@@ -467,13 +521,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                   color: Colors.white.withOpacity(0.18),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.calendar_today_rounded, color: Colors.white, size: 14),
+                    const Icon(Icons.calendar_today_rounded, color: Colors.white, size: 14),
                     SizedBox(width: 6),
                     Text(
-                      'Thursday, April 24',
+                      _todayLabel,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 12.5,
@@ -493,9 +547,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   // ── Stats row ──────────────────────────────────────────────────────────────
   Widget _buildStatsRow() {
     final stats = [
-      _StatData(icon: Icons.people_rounded,      color: _kPrimary, value: '128', label: 'Total\nStudents'),
-      _StatData(icon: Icons.class_rounded,        color: _kPurple,  value: '6',   label: 'Total\nBatches'),
-      _StatData(icon: Icons.how_to_reg_rounded,  color: _kSuccess, value: '42',  label: 'Active\nToday'),
+      _StatData(icon: Icons.people_rounded,     color: _kPrimary, value: _totalStudents,  label: 'Total\nStudents'),
+      _StatData(icon: Icons.class_rounded,      color: _kPurple,  value: _totalBatches,   label: 'Total\nBatches'),
+      _StatData(icon: Icons.how_to_reg_rounded, color: _kSuccess, value: _activeStudents, label: 'Active\nStudents'),
     ];
 
     return Row(
@@ -511,7 +565,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 final delay = i * 0.2;
                 final t = (((_statsCtrl.value - delay) / (1.0 - delay)).clamp(0.0, 1.0));
                 final curve = Curves.easeOutCubic.transform(t);
-                final count = (int.parse(s.value) * curve).toInt();
+                final count = (s.value * curve).toInt();
 
                 return Container(
                   padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
@@ -607,26 +661,11 @@ class _DashboardScreenState extends State<DashboardScreen>
             onTap: _openAddStudent,
           ),
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _ActionButtonOutlined(
-                  icon: Icons.group_add_rounded,
-                  label: 'Create Batch',
-                  color: _kPurple,
-                  onTap: _openCreateBatch,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _ActionButtonOutlined(
-                  icon: Icons.vpn_key_rounded,
-                  label: 'Credentials',
-                  color: _kWarning,
-                  onTap: () {},
-                ),
-              ),
-            ],
+          _ActionButtonOutlined(
+            icon: Icons.group_add_rounded,
+            label: 'Create Batch',
+            color: _kPurple,
+            onTap: _openCreateBatch,
           ),
         ],
       ),
@@ -663,7 +702,7 @@ class _DashboardScreenState extends State<DashboardScreen>
           ],
         ),
         const SizedBox(height: 12),
-        if (_kRecentStudents.isEmpty)
+        if (_recentStudents.isEmpty)
           _buildEmptyState()
         else
           Container(
@@ -681,11 +720,11 @@ class _DashboardScreenState extends State<DashboardScreen>
             child: ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: _kRecentStudents.length,
+              itemCount: _recentStudents.length,
               separatorBuilder: (_, __) => const Divider(
                 color: _kBorder, height: 1, indent: 68,
               ),
-              itemBuilder: (_, i) => _StudentTile(student: _kRecentStudents[i]),
+              itemBuilder: (_, i) => _StudentTile(data: _recentStudents[i]),
             ),
           ),
       ],
@@ -930,7 +969,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 class _StatData {
   final IconData icon;
   final Color    color;
-  final String   value;
+  final int      value;
   final String   label;
   const _StatData({
     required this.icon,
@@ -1033,11 +1072,20 @@ class _ActionButtonOutlined extends StatelessWidget {
 
 // ─── Student tile ─────────────────────────────────────────────────────────────
 class _StudentTile extends StatelessWidget {
-  final _Student student;
-  const _StudentTile({required this.student});
+  final Map<String, dynamic> data;
+  const _StudentTile({required this.data});
 
   @override
-  Widget build(BuildContext context) => Padding(
+  Widget build(BuildContext context) {
+    final name     = data['name'] as String? ?? '-';
+    final username = data['username'] as String? ?? '';
+    final status   = data['status'] as String? ?? 'inactive';
+    final active   = status == 'active';
+    final initials = name.trim().isNotEmpty
+        ? name.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase()
+        : '?';
+
+    return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
@@ -1049,8 +1097,8 @@ class _StudentTile extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
                   colors: [
-                    _avatarColor(student.avatar),
-                    _avatarColor(student.avatar).withOpacity(0.7),
+                    _avatarColor(initials),
+                    _avatarColor(initials).withOpacity(0.7),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -1058,7 +1106,7 @@ class _StudentTile extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  student.avatar,
+                  initials,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -1073,7 +1121,7 @@ class _StudentTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    student.name,
+                    name,
                     style: const TextStyle(
                       color: _kTextDark,
                       fontSize: 14,
@@ -1082,7 +1130,7 @@ class _StudentTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    student.username,
+                    username,
                     style: const TextStyle(
                       color: _kTextMuted,
                       fontSize: 12,
@@ -1095,15 +1143,15 @@ class _StudentTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: student.active
+                color: active
                     ? _kSuccess.withOpacity(0.1)
                     : _kTextMuted.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                student.active ? 'Active' : 'Inactive',
+                active ? 'Active' : 'Inactive',
                 style: TextStyle(
-                  color: student.active ? _kSuccess : _kTextMuted,
+                  color: active ? _kSuccess : _kTextMuted,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
@@ -1112,6 +1160,7 @@ class _StudentTile extends StatelessWidget {
           ],
         ),
       );
+  }
 
   Color _avatarColor(String initials) {
     final colors = [

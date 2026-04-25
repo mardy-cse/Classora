@@ -34,8 +34,13 @@ class _AddStudentScreenState extends State<AddStudentScreen>
   final _schoolCtrl     = TextEditingController();
   final _addressCtrl    = TextEditingController();
 
-  bool    _saving       = false;
+  bool    _saving        = false;
   String? _errorMessage;
+
+  // Batch selection
+  List<Map<String, dynamic>> _batches        = [];
+  String?                    _selectedBatchId;
+  bool                       _loadingBatches = true;
 
   // Generated credentials (shown in preview)
   String _generatedEmail    = '';
@@ -61,6 +66,7 @@ class _AddStudentScreenState extends State<AddStudentScreen>
     // Generate default credentials immediately so preview is visible
     _regenerateCredentials('');
     _nameCtrl.addListener(() => _regenerateCredentials(_nameCtrl.text));
+    _loadBatches();
   }
 
   @override
@@ -72,6 +78,27 @@ class _AddStudentScreenState extends State<AddStudentScreen>
     _addressCtrl.dispose();
     _anim.dispose();
     super.dispose();
+  }
+
+  // ── Load batches ──────────────────────────────────────────────────────────
+  Future<void> _loadBatches() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('batches')
+          .where('teacher_id', isEqualTo: uid)
+          .get()
+          .timeout(const Duration(seconds: 15));
+      if (!mounted) return;
+      setState(() {
+        _batches = snap.docs
+            .map((d) => {'id': d.id, ...d.data()})
+            .toList();
+        _loadingBatches = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingBatches = false);
+    }
   }
 
   // ── Credential generation ─────────────────────────────────────────────────
@@ -121,7 +148,7 @@ class _AddStudentScreenState extends State<AddStudentScreen>
         'address':     _addressCtrl.text.trim(),
         'username':    _generatedEmail,
         'password':    _generatedPassword,
-        'batch_id':    '',
+        'batch_id':    _selectedBatchId ?? '',
         'teacher_id':  uid,
         'status':      'active',
         'created_at':  FieldValue.serverTimestamp(),
@@ -258,6 +285,27 @@ class _AddStudentScreenState extends State<AddStudentScreen>
                                 hint: 'e.g. Rajshahi',
                                 icon: Icons.location_on_outlined,
                                 textCapitalization: TextCapitalization.words,
+                              ),
+
+                              const SizedBox(height: 28),
+
+                              // ── Batch Assignment ─────────────────────────
+                              _SectionLabel(label: 'Batch Assignment'),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Assign this student to one of your batches (optional)',
+                                style: TextStyle(
+                                  color: _kTextMuted.withOpacity(0.75),
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              _BatchDropdown(
+                                batches: _batches,
+                                loading: _loadingBatches,
+                                selectedId: _selectedBatchId,
+                                onChanged: (id) =>
+                                    setState(() => _selectedBatchId = id),
                               ),
 
                               const SizedBox(height: 28),
@@ -743,4 +791,157 @@ class _Blob extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(shape: BoxShape.circle, color: color),
       );
+}
+
+// ─── Batch dropdown ───────────────────────────────────────────────────────────
+class _BatchDropdown extends StatelessWidget {
+  final List<Map<String, dynamic>> batches;
+  final bool loading;
+  final String? selectedId;
+  final ValueChanged<String?> onChanged;
+
+  const _BatchDropdown({
+    required this.batches,
+    required this.loading,
+    required this.selectedId,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return Container(
+        height: 54,
+        decoration: BoxDecoration(
+          color: _kCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _kBorder),
+        ),
+        child: const Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: _kPrimary),
+          ),
+        ),
+      );
+    }
+
+    if (batches.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: _kCard,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _kBorder),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline_rounded,
+                color: _kTextMuted.withOpacity(0.6), size: 18),
+            const SizedBox(width: 10),
+            const Text(
+              'No batches yet — create one first',
+              style: TextStyle(color: _kTextMuted, fontSize: 13.5),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: _kCard,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: selectedId != null ? _kPrimary : _kBorder,
+          width: selectedId != null ? 1.5 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selectedId,
+          isExpanded: true,
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          hint: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              children: [
+                Icon(Icons.class_outlined,
+                    color: _kTextMuted.withOpacity(0.6), size: 20),
+                const SizedBox(width: 10),
+                const Text(
+                  'Select a batch (optional)',
+                  style: TextStyle(color: _kTextMuted, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+          items: [
+            // "None" option to deselect
+            DropdownMenuItem<String>(
+              value: null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Text(
+                  'No batch assigned',
+                  style: TextStyle(
+                      color: _kTextMuted.withOpacity(0.8), fontSize: 14),
+                ),
+              ),
+            ),
+            ...batches.map((b) {
+              final name      = b['name'] as String? ?? '-';
+              final code      = b['batch_code'] as String? ?? '';
+              final classLvl  = b['class_level'] as String? ?? '';
+              final label     = code.isNotEmpty ? '$name ($code)' : name;
+              return DropdownMenuItem<String>(
+                value: b['id'] as String,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          color: _kTextDark,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (classLvl.isNotEmpty)
+                        Text(
+                          classLvl,
+                          style: const TextStyle(
+                              color: _kTextMuted, fontSize: 12),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ],
+          onChanged: onChanged,
+          icon: const Padding(
+            padding: EdgeInsets.only(right: 10),
+            child: Icon(Icons.keyboard_arrow_down_rounded,
+                color: _kTextMuted),
+          ),
+          itemHeight: 56,
+        ),
+      ),
+    );
+  }
 }
