@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'add_student_screen.dart';
 import 'student_detail_screen.dart';
@@ -317,23 +318,45 @@ class _StudentCard extends StatelessWidget {
               ),
             ),
 
-            // Status
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: isActive
-                    ? _kSuccess.withOpacity(0.1)
-                    : _kTextMuted.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                isActive ? 'Active' : 'Inactive',
-                style: TextStyle(
-                  color: isActive ? _kSuccess : _kTextMuted,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
+            // Status icon + call button
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Status icon
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: (isActive ? _kSuccess : _kTextMuted).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    isActive
+                        ? Icons.check_circle_rounded
+                        : Icons.pause_circle_rounded,
+                    color: isActive ? _kSuccess : _kTextMuted,
+                    size: 20,
+                  ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                // Call button
+                GestureDetector(
+                  onTap: () => _call(phone),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: _kPrimary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.phone_rounded,
+                      color: _kPrimary,
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -346,6 +369,13 @@ class _StudentCard extends StatelessWidget {
     const colors = [_kPrimary, _kPurple, _kSuccess, Color(0xFFF59E0B), Color(0xFFEF4444)];
     final hash = initials.codeUnits.fold(0, (a, b) => a + b);
     return colors[hash % colors.length];
+  }
+
+  Future<void> _call(String phone) async {
+    final digits = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    if (digits.isEmpty) return;
+    final uri = Uri.parse('tel:$digits');
+    if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 }
 
