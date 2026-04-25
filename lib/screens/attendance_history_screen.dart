@@ -38,6 +38,7 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen>
   bool _loading = true;
   String? _error;
   List<Map<String, dynamic>> _records = [];
+  bool _showTitle = false;
 
   final _uid = FirebaseAuth.instance.currentUser!.uid;
 
@@ -129,110 +130,121 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen>
 
   @override
   Widget build(BuildContext context) {
+    final topPad = MediaQuery.of(context).padding.top;
+    final expandedHeight = 140.0;
+
     return Scaffold(
       backgroundColor: _kBg,
-      body: Column(
-        children: [
-          // ── Header ──────────────────────────────────────────────────────
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [_kPrimary, _kPurple],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (n) {
+          if (n is ScrollUpdateNotification) {
+            final collapsed = n.metrics.pixels > 60;
+            if (collapsed != _showTitle) setState(() => _showTitle = collapsed);
+          }
+          return false;
+        },
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            // ── AppBar ──────────────────────────────────────────────────────
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: expandedHeight,
+              backgroundColor: _kPrimary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              automaticallyImplyLeading: false,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                    size: 20, color: Colors.white),
+                onPressed: () => Navigator.of(context).pop(),
               ),
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(4, 8, 16, 16),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                          color: Colors.white, size: 20),
-                      onPressed: () => Navigator.of(context).pop(),
+              title: AnimatedOpacity(
+                opacity: _showTitle ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 200),
+                child: Text(
+                  widget.batchName,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              flexibleSpace: FlexibleSpaceBar(
+                collapseMode: CollapseMode.pin,
+                background: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [_kPrimary, _kPurple],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Attendance History',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            widget.batchName,
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (_records.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                              color: Colors.white.withOpacity(0.35)),
-                        ),
-                        child: Text(
-                          '${_records.length} records',
-                          style: const TextStyle(
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(20, topPad + kToolbarHeight, 16, 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        const Text(
+                          'Attendance History',
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 12,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          widget.batchName,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.75),
+                            fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ),
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
 
-          // ── Content ──────────────────────────────────────────────────────
-          Expanded(
-            child: _loading
-                ? const Center(
-                    child: CircularProgressIndicator(color: _kPrimary))
-                : _error != null
-                    ? _ErrorView(error: _error!, onRetry: _load)
-                    : _records.isEmpty
-                        ? const _EmptyView()
-                        : FadeTransition(
-                            opacity: _fade,
-                            child: ListView.builder(
-                              physics: const BouncingScrollPhysics(),
-                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                              itemCount: _records.length,
-                              itemBuilder: (_, i) {
-                                final r = _records[i];
-                                final ts = r['date'] as Timestamp?;
-                                final date = ts?.toDate() ?? DateTime.now();
-                                return _HistoryCard(
-                                  date: date,
-                                  present: r['present'] as int,
-                                  absent: r['absent'] as int,
-                                  late: r['late'] as int,
-                                  total: r['total'] as int,
-                                  onTap: () => _openAttendance(date),
-                                );
-                              },
-                            ),
-                          ),
-          ),
-        ],
+            // ── Content ──────────────────────────────────────────────────────
+            if (_loading)
+              const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator(color: _kPrimary)),
+              )
+            else if (_error != null)
+              SliverFillRemaining(child: _ErrorView(error: _error!, onRetry: _load))
+            else if (_records.isEmpty)
+              const SliverFillRemaining(child: _EmptyView())
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (_, i) {
+                      final r = _records[i];
+                      final ts = r['date'] as Timestamp?;
+                      final date = ts?.toDate() ?? DateTime.now();
+                      return _HistoryCard(
+                        date: date,
+                        present: r['present'] as int,
+                        absent: r['absent'] as int,
+                        late: r['late'] as int,
+                        total: r['total'] as int,
+                        onTap: () => _openAttendance(date),
+                      );
+                    },
+                    childCount: _records.length,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -37,6 +37,7 @@ class BatchDetailScreen extends StatefulWidget {
 class _BatchDetailScreenState extends State<BatchDetailScreen>
     with SingleTickerProviderStateMixin {
   late Map<String, dynamic> _data;
+  bool _showTitle = false;
 
   late final AnimationController _anim;
   late final Animation<double>   _fade;
@@ -181,7 +182,6 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
           children: [
             // Take Attendance
             Expanded(
-              flex: 3,
               child: GestureDetector(
                 onTap: () => Navigator.of(context).push(
                   PageRouteBuilder(
@@ -239,7 +239,6 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             const SizedBox(width: 10),
             // View History
             Expanded(
-              flex: 2,
               child: GestureDetector(
                 onTap: () => Navigator.of(context).push(
                   PageRouteBuilder(
@@ -286,7 +285,15 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
           ],
         ),
       ),
-      body: FadeTransition(
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (n) {
+          if (n is ScrollUpdateNotification) {
+            final collapsed = n.metrics.pixels > 80;
+            if (collapsed != _showTitle) setState(() => _showTitle = collapsed);
+          }
+          return false;
+        },
+        child: FadeTransition(
         opacity: _fade,
         child: SlideTransition(
           position: _slide,
@@ -295,15 +302,20 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
             slivers: [
               // ── App Bar ───────────────────────────────────────────────────
               SliverAppBar(
-                expandedHeight: 180,
+                expandedHeight: 140,
                 pinned: true,
                 backgroundColor: _kPrimary,
-                title: Text(
-                  name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+                titleSpacing: 0,
+                title: AnimatedOpacity(
+                  opacity: _showTitle ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Text(
+                    name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 leading: IconButton(
@@ -336,31 +348,11 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                     ),
                     child: SafeArea(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 56, 20, 16),
+                        padding: const EdgeInsets.fromLTRB(20, 56, 20, 20),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            // Status badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                    color: Colors.white.withOpacity(0.4)),
-                              ),
-                              child: Text(
-                                status,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
                             Text(
                               name,
                               style: const TextStyle(
@@ -370,15 +362,38 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
                                 letterSpacing: -0.3,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              batchCode,
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.75),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 1.2,
-                              ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Text(
+                                  batchCode,
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.75),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                        color: Colors.white.withOpacity(0.4)),
+                                  ),
+                                  child: Text(
+                                    status,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -462,6 +477,7 @@ class _BatchDetailScreenState extends State<BatchDetailScreen>
               ),
             ],
           ),
+        ),
         ),
       ),
     );
