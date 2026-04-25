@@ -333,12 +333,51 @@ class _DashboardScreenState extends State<DashboardScreen>
         ],
       ),
       actions: [
+        // [DEV] Seed 5 batches
+        GestureDetector(
+          onTap: _seedBatches,
+          child: Tooltip(
+            message: 'Seed 5 Batches',
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: _kPrimary.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: _kPrimary.withOpacity(0.18)),
+              ),
+              child: const Icon(Icons.class_rounded,
+                  color: _kPrimary, size: 20),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        // [DEV] Seed 20 students per batch
+        GestureDetector(
+          onTap: _seedStudents,
+          child: Tooltip(
+            message: 'Seed 20 Students/Batch',
+            child: Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: _kPurple.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: _kPurple.withOpacity(0.18)),
+              ),
+              child: const Icon(Icons.group_add_rounded,
+                  color: _kPurple, size: 20),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        // Profile avatar
         GestureDetector(
           onTap: _showProfileSheet,
           child: Container(
             margin: const EdgeInsets.only(right: 20),
-            width: 40,
-            height: 40,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: const LinearGradient(
@@ -360,7 +399,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
-                  fontSize: 16,
+                  fontSize: 15,
                 ),
               ),
             ),
@@ -781,6 +820,130 @@ class _DashboardScreenState extends State<DashboardScreen>
           child: child,
         ),
         transitionDuration: const Duration(milliseconds: 420),
+      ),
+    );
+  }
+
+  // ── [DEV] Seed 5 dummy batches ────────────────────────────────────────────
+  Future<void> _seedBatches() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final rng = math.Random();
+    final db  = FirebaseFirestore.instance;
+
+    const names    = ['SSC Science 2026', 'HSC Commerce 2026', 'Class 9 Math', 'Class 8 English', 'Degree Physics'];
+    const levels   = ['SSC', 'HSC', 'Class 9', 'Class 8', 'Degree'];
+    const subjects = ['Science', 'Commerce', 'Mathematics', 'English', 'Physics'];
+    const days     = [['Sat', 'Mon', 'Wed'], ['Sun', 'Tue', 'Thu'], ['Sat', 'Sun', 'Tue'], ['Mon', 'Wed', 'Fri'], ['Sat', 'Mon', 'Thu']];
+    const times    = ['8:00 AM – 10:00 AM', '10:00 AM – 12:00 PM', '2:00 PM – 4:00 PM', '4:00 PM – 6:00 PM', '6:00 PM – 8:00 PM'];
+
+    final batch = db.batch();
+    for (int i = 0; i < 5; i++) {
+      final chars  = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      final suffix = List.generate(5, (_) => chars[rng.nextInt(chars.length)]).join();
+      final ref = db.collection('batches').doc();
+      batch.set(ref, {
+        'name':          names[i],
+        'class_level':   levels[i],
+        'session':       '2026',
+        'subject':       subjects[i],
+        'batch_code':    'BCH-$suffix',
+        'teacher_id':    uid,
+        'status':        'Active',
+        'created_at':    FieldValue.serverTimestamp(),
+        'start_date':    Timestamp.fromDate(DateTime(2026, 1, 1)),
+        'end_date':      Timestamp.fromDate(DateTime(2026, 12, 31)),
+        'max_students':  30,
+        'description':   '',
+        'schedule_days': days[i],
+        'class_time':    times[i],
+      });
+    }
+    await batch.commit();
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('✅ 5 dummy batches created!'),
+        backgroundColor: Color(0xFF10B981),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  // ── [DEV] Seed 20 dummy students per batch ────────────────────────────────
+  Future<void> _seedStudents() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final rng = math.Random();
+    final db  = FirebaseFirestore.instance;
+
+    // Get all teacher's batches
+    final batchSnap = await db
+        .collection('batches')
+        .where('teacher_id', isEqualTo: uid)
+        .get();
+
+    if (batchSnap.docs.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ No batches found. Create batches first!'),
+          backgroundColor: Color(0xFFF59E0B),
+        ),
+      );
+      return;
+    }
+
+    const firstNames = [
+      'Arif', 'Rahim', 'Karim', 'Tariq', 'Nasir', 'Jahid', 'Rakib', 'Sohel',
+      'Liton', 'Milon', 'Sumon', 'Rasel', 'Rony', 'Parvez', 'Belal',
+      'Nusrat', 'Sumaiya', 'Mim', 'Tania', 'Sadia', 'Ritu', 'Priya', 'Mitu', 'Liza', 'Sumi',
+    ];
+    const lastNames = [
+      'Hossain', 'Islam', 'Ahmed', 'Akter', 'Khatun', 'Begum', 'Khan', 'Mia',
+      'Uddin', 'Rahman', 'Bhuiyan', 'Sarkar', 'Chowdhury', 'Mondal', 'Biswas',
+    ];
+
+    int total = 0;
+    final chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+    for (final batchDoc in batchSnap.docs) {
+      final batchId = batchDoc.id;
+      final writeBatch = db.batch();
+
+      for (int i = 0; i < 20; i++) {
+        final first  = firstNames[rng.nextInt(firstNames.length)];
+        final last   = lastNames[rng.nextInt(lastNames.length)];
+        final name   = '$first $last';
+        final phone  = '+880${1700000000 + rng.nextInt(99999999)}';
+        final uSuffix = List.generate(6, (_) => chars[rng.nextInt(chars.length)]).join();
+        final username = 'STU-$uSuffix';
+        final password = List.generate(8, (_) => chars[rng.nextInt(chars.length)]).join();
+
+        final ref = db.collection('students').doc();
+        writeBatch.set(ref, {
+          'name':        name,
+          'father_name': '${lastNames[rng.nextInt(lastNames.length)]} ${lastNames[rng.nextInt(lastNames.length)]}',
+          'phone':       phone,
+          'school':      'Demo School',
+          'address':     'Dhaka, Bangladesh',
+          'username':    username,
+          'password':    password,
+          'batch_id':    batchId,
+          'teacher_id':  uid,
+          'status':      'active',
+          'created_at':  FieldValue.serverTimestamp(),
+        });
+        total++;
+      }
+      await writeBatch.commit();
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('✅ $total students added across ${batchSnap.docs.length} batches!'),
+        backgroundColor: const Color(0xFF10B981),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
