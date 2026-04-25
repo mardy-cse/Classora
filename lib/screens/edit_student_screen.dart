@@ -663,6 +663,7 @@ class _BatchDropdown extends StatelessWidget {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           borderRadius: BorderRadius.circular(14),
+          dropdownColor: Colors.white,
           icon: const Icon(Icons.keyboard_arrow_down_rounded,
               color: _kTextMuted),
           items: [

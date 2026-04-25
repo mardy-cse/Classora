@@ -35,6 +35,8 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
   late Map<String, dynamic> _data;
   bool _deleting = false;
 
+  String? _batchName;
+
   late final AnimationController _anim;
   late final Animation<double>   _fade;
   late final Animation<Offset>   _slide;
@@ -52,12 +54,30 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
       begin: const Offset(0, 0.08),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _anim, curve: Curves.easeOutCubic));
+
+    _loadBatchName();
   }
 
   @override
   void dispose() {
     _anim.dispose();
     super.dispose();
+  }
+
+  // ── Load batch name ────────────────────────────────────────────────────────
+  Future<void> _loadBatchName() async {
+    final batchId = _data['batch_id'] as String?;
+    if (batchId == null || batchId.isEmpty) return;
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('batches')
+          .doc(batchId)
+          .get();
+      if (!mounted) return;
+      if (doc.exists) {
+        setState(() => _batchName = doc.data()?['name'] as String? ?? batchId);
+      }
+    } catch (_) {}
   }
 
   // ── Getters ────────────────────────────────────────────────────────────────
@@ -160,7 +180,11 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
       ),
     );
     if (updated != null && mounted) {
-      setState(() => _data.addAll(updated));
+      setState(() {
+        _data.addAll(updated);
+        _batchName = null; // reset so it reloads
+      });
+      _loadBatchName();
     }
   }
 
@@ -234,6 +258,11 @@ class _StudentDetailScreenState extends State<StudentDetailScreen>
                                   icon: Icons.location_on_outlined,
                                   label: 'Address',
                                   value: _address.isEmpty ? '—' : _address,
+                                ),
+                                _InfoRow(
+                                  icon: Icons.groups_outlined,
+                                  label: 'Assigned Batch',
+                                  value: _batchName ?? '—',
                                   isLast: true,
                                 ),
                               ],
