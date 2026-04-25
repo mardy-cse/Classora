@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'batch_detail_screen.dart';
 import 'create_batch_screen.dart';
 
 // ─── Brand palette ─────────────────────────────────────────────────────────
@@ -93,7 +94,7 @@ class BatchesTab extends StatelessWidget {
                 itemCount: docs.length,
                 itemBuilder: (_, i) {
                   final data = docs[i].data() as Map<String, dynamic>;
-                  return _BatchCard(data: data);
+                  return _BatchCard(docId: docs[i].id, data: data);
                 },
               );
             },
@@ -106,8 +107,9 @@ class BatchesTab extends StatelessWidget {
 
 // ─── Batch card ───────────────────────────────────────────────────────────────
 class _BatchCard extends StatelessWidget {
+  final String docId;
   final Map<String, dynamic> data;
-  const _BatchCard({required this.data});
+  const _BatchCard({required this.docId, required this.data});
 
   Color get _statusColor {
     return switch (data['status'] as String? ?? 'upcoming') {
@@ -129,7 +131,24 @@ class _BatchCard extends StatelessWidget {
     final days       = (data['schedule_days'] as List?)?.cast<String>() ?? [];
     final classTime  = data['class_time'] as String? ?? '';
 
-    return Container(
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        PageRouteBuilder(
+          pageBuilder: (_, a, __) => BatchDetailScreen(
+            docId: docId,
+            initialData: data,
+          ),
+          transitionsBuilder: (_, a, __, child) => SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1, 0),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
+            child: child,
+          ),
+          transitionDuration: const Duration(milliseconds: 380),
+        ),
+      ),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: _kCard,
@@ -242,6 +261,7 @@ class _BatchCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }
