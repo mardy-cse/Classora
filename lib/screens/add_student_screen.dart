@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'country_picker_sheet.dart';
+
 // ─── Brand palette (mirrors dashboard) ───────────────────────────────────────
 const _kPrimary   = Color(0xFF2563EB);
 const _kAccent    = Color(0xFF3B82F6);
@@ -36,6 +38,9 @@ class _AddStudentScreenState extends State<AddStudentScreen>
 
   bool    _saving        = false;
   String? _errorMessage;
+
+  // Country code picker
+  CountryEntry _selectedCountry = kCountries.first; // Bangladesh default
 
   // Batch selection
   List<Map<String, dynamic>> _batches        = [];
@@ -126,8 +131,95 @@ class _AddStudentScreenState extends State<AddStudentScreen>
   String? _validatePhone(String? v) {
     if (v == null || v.trim().isEmpty) return 'Phone number is required';
     final digits = v.trim().replaceAll(RegExp(r'\D'), '');
-    if (digits.length < 10) return 'Enter a valid phone number';
+    if (_selectedCountry.dialCode == '+880') {
+      if (digits.length != 11) return 'Must be exactly 11 digits (e.g. 01XXXXXXXXX)';
+      if (!digits.startsWith('01')) return 'Must start with 01';
+    } else if (_selectedCountry.expectedLocalDigits > 0) {
+      if (digits.length != _selectedCountry.expectedLocalDigits) {
+        return 'Must be exactly ${_selectedCountry.expectedLocalDigits} digits';
+      }
+    } else {
+      if (digits.length < 7 || digits.length > 15) {
+        return 'Enter a valid phone number (7–15 digits)';
+      }
+    }
     return null;
+  }
+
+  // ── Phone field with country picker ──────────────────────────────────────
+  Widget _buildPhoneField() {
+    return TextFormField(
+      controller: _phoneCtrl,
+      keyboardType: TextInputType.phone,
+      validator: _validatePhone,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      style: const TextStyle(
+        color: _kTextDark,
+        fontSize: 14.5,
+        fontWeight: FontWeight.w500,
+      ),
+      decoration: InputDecoration(
+        hintText: _selectedCountry.dialCode == '+880' ? '01XXXXXXXXX' : 'Phone number',
+        hintStyle: TextStyle(color: _kTextMuted.withOpacity(0.6), fontSize: 14),
+        prefixIcon: GestureDetector(
+          onTap: () async {
+            FocusScope.of(context).unfocus();
+            final picked = await showCountryPicker(context);
+            if (picked != null) setState(() => _selectedCountry = picked);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_selectedCountry.flag,
+                    style: const TextStyle(fontSize: 20)),
+                const SizedBox(width: 6),
+                Text(
+                  _selectedCountry.dialCode,
+                  style: const TextStyle(
+                    color: _kTextDark,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                const Icon(Icons.arrow_drop_down_rounded,
+                    color: _kTextMuted, size: 16),
+                const SizedBox(width: 6),
+                Container(width: 1, height: 20, color: _kBorder),
+              ],
+            ),
+          ),
+        ),
+        prefixIconConstraints:
+            const BoxConstraints(minHeight: 0, minWidth: 0),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _kBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _kBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _kPrimary, width: 1.6),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _kError, width: 1.2),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _kError, width: 1.6),
+        ),
+      ),
+    );
   }
 
   // ── Save to Firestore ─────────────────────────────────────────────────────
@@ -143,7 +235,7 @@ class _AddStudentScreenState extends State<AddStudentScreen>
       await FirebaseFirestore.instance.collection('students').add({
         'name':        _nameCtrl.text.trim(),
         'father_name': _fatherNameCtrl.text.trim(),
-        'phone':       _phoneCtrl.text.trim(),
+        'phone':       _selectedCountry.dialCode + _phoneCtrl.text.trim(),
         'school':      _schoolCtrl.text.trim(),
         'address':     _addressCtrl.text.trim(),
         'username':    _generatedEmail,
@@ -253,17 +345,7 @@ class _AddStudentScreenState extends State<AddStudentScreen>
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              _InputField(
-                                controller: _phoneCtrl,
-                                hint: '017XXXXXXXX',
-                                icon: Icons.phone_outlined,
-                                keyboardType: TextInputType.phone,
-                                validator: _validatePhone,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(
-                                      RegExp(r'[\d\+\-\s]')),
-                                ],
-                              ),
+                              _buildPhoneField(),
 
                               const SizedBox(height: 18),
 

@@ -64,6 +64,10 @@ class _DashboardScreenState extends State<DashboardScreen>
   int _activeStudents = 0;
   List<Map<String, dynamic>> _recentStudents = [];
 
+  // Firestore streams
+  Stream<QuerySnapshot>? _studentsStream;
+  Stream<QuerySnapshot>? _batchesStream;
+
   late final AnimationController _fadeCtrl;
   late final Animation<double>   _fadeAnim;
   late final AnimationController _statsCtrl;
@@ -98,52 +102,53 @@ class _DashboardScreenState extends State<DashboardScreen>
       duration: const Duration(milliseconds: 900),
     );
 
-    _loadDashboardData();
+    _initStreams();
   }
 
-  Future<void> _loadDashboardData() async {
+  void _initStreams() {
     final uid = FirebaseAuth.instance.currentUser!.uid;
-    try {
-      final results = await Future.wait([
-        FirebaseFirestore.instance
-            .collection('students')
-            .where('teacher_id', isEqualTo: uid)
-            .get(),
-        FirebaseFirestore.instance
-            .collection('batches')
-            .where('teacher_id', isEqualTo: uid)
-            .get(),
-      ]).timeout(const Duration(seconds: 15));
+    _studentsStream = FirebaseFirestore.instance
+        .collection('students')
+        .where('teacher_id', isEqualTo: uid)
+        .snapshots();
+    _batchesStream = FirebaseFirestore.instance
+        .collection('batches')
+        .where('teacher_id', isEqualTo: uid)
+        .snapshots();
 
-      final studentDocs = results[0].docs;
-      final batchDocs   = results[1].docs;
-
-      final activeCount = studentDocs
-          .where((d) => (d.data())['status'] == 'active')
-          .length;
-
-      // Sort client-side (no composite index needed)
-      final sorted = List.of(studentDocs)
+    // Listen to students stream and update state
+    _studentsStream!.listen((snap) {
+      if (!mounted) return;
+      final docs = snap.docs;
+      final activeCount =
+          docs.where((d) => (d.data() as Map)['status'] == 'active').length;
+      final sorted = List.of(docs)
         ..sort((a, b) {
-          final aT = a.data()['created_at'] as Timestamp?;
-          final bT = b.data()['created_at'] as Timestamp?;
+          final aT = (a.data() as Map)['created_at'] as Timestamp?;
+          final bT = (b.data() as Map)['created_at'] as Timestamp?;
           if (aT == null || bT == null) return 0;
           return bT.compareTo(aT);
         });
-
-      if (!mounted) return;
       setState(() {
-        _totalStudents  = studentDocs.length;
-        _totalBatches   = batchDocs.length;
+        _totalStudents  = docs.length;
         _activeStudents = activeCount;
-        _recentStudents = sorted.take(5).map((d) => d.data()).toList();
+        _recentStudents = sorted.take(5).map((d) => d.data() as Map<String, dynamic>).toList();
         _loading        = false;
       });
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
-    }
-    _fadeCtrl.forward();
-    _statsCtrl.forward();
+      _fadeCtrl.forward();
+      _statsCtrl
+        ..reset()
+        ..forward();
+    });
+
+    // Listen to batches stream
+    _batchesStream!.listen((snap) {
+      if (!mounted) return;
+      setState(() {
+        _totalBatches = snap.docs.length;
+        _loading      = false;
+      });
+    });
   }
 
   @override
