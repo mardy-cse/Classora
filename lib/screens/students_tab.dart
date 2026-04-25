@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import 'add_student_screen.dart';
+import 'student_detail_screen.dart';
 
 // ─── Brand palette ─────────────────────────────────────────────────────────
 const _kPrimary   = Color(0xFF2563EB);
@@ -91,8 +92,12 @@ class StudentsTab extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                 itemCount: docs.length,
                 itemBuilder: (_, i) {
-                  final data = docs[i].data() as Map<String, dynamic>;
-                  return _StudentCard(data: data);
+                  final doc  = docs[i];
+                  final data = doc.data() as Map<String, dynamic>;
+                  return _StudentCard(
+                    docId: doc.id,
+                    data: data,
+                  );
                 },
               );
             },
@@ -105,8 +110,9 @@ class StudentsTab extends StatelessWidget {
 
 // ─── Student card ─────────────────────────────────────────────────────────────
 class _StudentCard extends StatelessWidget {
+  final String             docId;
   final Map<String, dynamic> data;
-  const _StudentCard({required this.data});
+  const _StudentCard({required this.docId, required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +126,24 @@ class _StudentCard extends StatelessWidget {
         ? name.trim().split(' ').map((w) => w[0]).take(2).join().toUpperCase()
         : '?';
 
-    return Container(
+    return GestureDetector(
+      onTap: () => Navigator.of(context).push(
+        PageRouteBuilder(
+          pageBuilder: (_, a, __) => StudentDetailScreen(
+            docId: docId,
+            initialData: data,
+          ),
+          transitionsBuilder: (_, a, __, child) => SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1, 0),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
+            child: child,
+          ),
+          transitionDuration: const Duration(milliseconds: 380),
+        ),
+      ),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: _kCard,
@@ -231,6 +254,7 @@ class _StudentCard extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 
